@@ -4,7 +4,6 @@ import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
 		render_template, flash
 from firebase import firebase
-from bunch import bunchify
 
 #create our little appliction
 app = Flask(__name__)
@@ -12,7 +11,6 @@ app.config.from_object(__name__)
 
 FIREBASE_DATABASE_URL = "https://testapp-1ff42.firebaseio.com/"
 firebase = firebase.FirebaseApplication(FIREBASE_DATABASE_URL)
-
 
 #Load default config and override config from an environment variable
 app.config.update(dict(
@@ -51,7 +49,6 @@ def get_db():
 @app.route('/')
 def show_entries():
 	entries = firebase.get('/Entries', None)
-	
 	db = get_db()
 	cur = db.execute('select title, text from entries order by id desc')
 	#entries = cur.fetchall()
@@ -65,6 +62,7 @@ def add_entry():
 	db.execute('insert into entries (title, text) values (?,?)',
 								[request.form['title'], request.form['text']])
 	db.commit()
+	firebase.post('/Entries', {"Title":request.form['title'], "Content":request.form['text']})
 	flash('New entry was successfully posted')
 	return redirect(url_for('show_entries'))
 
@@ -72,6 +70,7 @@ def add_entry():
 def login():
 	error = None
 	if request.method == 'POST':
+		
 		if request.form['username'] != app.config['USERNAME']:
 			error = 'Invalid username'
 		elif request.form['password'] != app.config['PASSWORD']:
@@ -89,10 +88,10 @@ def logout():
 	return redirect(url_for('show_entries'))
 
 
-
-
 @app.teardown_appcontext
 def close_db(error):
 	"""Closes the database again at the end of the request."""
 	if hasattr(g, 'sqlite_db'):
 		g.sqlite_db.close()	
+
+
